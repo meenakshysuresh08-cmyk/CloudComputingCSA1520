@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudDR Studio | Automated Cloud Disaster Recovery & Intelligent Failover</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            alabaster: '#FAF9F6',
+            pinterest: '#E60023',
+            coral: '#E11D48',
+            sage: { 50: '#F0FDF4', 100: '#DCFCE7', 500: '#22C55E', 700: '#15803D' },
+            amber: { 50: '#FFFBEB', 100: '#FEF3C7', 500: '#F59E0B', 700: '#B45309' },
+            terracotta: { 50: '#FEF2F2', 100: '#FEE2E2', 500: '#EF4444', 700: '#B91C1C' },
+            periwinkle: { 50: '#EEF2FF', 100: '#E0E7FF', 500: '#6366F1', 700: '#4338CA' },
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#FAF9F6] text-stone-800 antialiased min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900">
+
+  <!-- ==================== Persistent Pinterest Top Navigation Bar ==================== -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200/70 px-4 lg:px-8 py-3.5 transition-all">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand Mark -->
+      <a href="#/" class="flex items-center gap-2.5 group">
+        <div class="w-10 h-10 rounded-full bg-[#E60023] flex items-center justify-center text-white shadow-md shadow-rose-200 group-hover:scale-105 transition-transform">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight text-stone-900 block leading-tight">CloudDR <span class="text-[#E60023]">Studio</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-stone-400 block -mt-0.5">Intelligent Failover</span>
+        </div>
+      </a>
+
+      <!-- Quick Search Bar -->
+      <div class="hidden md:flex flex-1 max-w-md mx-4">
+        <div class="relative w-full">
+          <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="globalSearchInput" 
+            placeholder="Search regions, telemetry metrics, ML events, logs..." 
+            class="w-full pl-10 pr-4 py-2 bg-stone-100/80 hover:bg-stone-100 focus:bg-white text-xs rounded-full border border-transparent focus:border-stone-300 focus:outline-none transition-all placeholder:text-stone-400 font-medium"
+          >
+        </div>
+      </div>
+
+      <!-- Live Active Region Status Pill & Quick Ingress Link -->
+      <div class="flex items-center gap-3">
+        <a 
+          href="http://localhost:8080" 
+          target="_blank" 
+          title="Direct Ingress Proxy (Nginx port 8080)"
+          class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200/70 rounded-full transition-colors border border-stone-200"
+        >
+          <i data-lucide="external-link" class="w-3.5 h-3.5 text-stone-500"></i>
+          <span>Ingress :8080</span>
+        </a>
+
+        <!-- Live Active Region Badge -->
+        <div id="navActiveRegionBadge" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all bg-emerald-100 text-emerald-800 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-green"></span>
+          <span id="navActiveRegionText">Active: region-primary</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Pills Tabs (6 Pages) -->
+    <div class="max-w-7xl mx-auto mt-3 pt-2.5 border-t border-stone-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <a href="#/" class="nav-tab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all bg-stone-900 text-white shadow-sm" data-tab="/">
+        <i data-lucide="layout-grid" class="w-3.5 h-3.5 inline mr-1 -mt-0.5"></i>
+        1. Overview Board
+      </a>
+      <a href="#/telemetry" class="nav-tab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-stone-600 hover:bg-stone-100 hover:text-stone-900" data-tab="/telemetry">
+        <i data-lucide="activity" class="w-3.5 h-3.5 inline mr-1 -mt-0.5"></i>
+        2. Live Telemetry & Topology
+      </a>
+      <a href="#/ml-detection" class="nav-tab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-stone-600 hover:bg-stone-100 hover:text-stone-900" data-tab="/ml-detection">
+        <i data-lucide="brain-circuit" class="w-3.5 h-3.5 inline mr-1 -mt-0.5"></i>
+        3. ML Anomaly Lab
+      </a>
+      <a href="#/replication" class="nav-tab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-stone-600 hover:bg-stone-100 hover:text-stone-900" data-tab="/replication">
+        <i data-lucide="database" class="w-3.5 h-3.5 inline mr-1 -mt-0.5"></i>
+        4. Backup & Replication
+      </a>
+      <a href="#/failover-chaos" class="nav-tab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-stone-600 hover:bg-stone-100 hover:text-stone-900" data-tab="/failover-chaos">
+        <i data-lucide="flame" class="w-3.5 h-3.5 inline mr-1 -mt-0.5"></i>
+        5. Intelligent Failover & Chaos
+      </a>
+      <a href="#/reports" class="nav-tab px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-stone-600 hover:bg-stone-100 hover:text-stone-900" data-tab="/reports">
+        <i data-lucide="file-check-2" class="w-3.5 h-3.5 inline mr-1 -mt-0.5"></i>
+        6. RTO/RPO Reports & Architecture
+      </a>
+    </div>
+  </header>
+
+  <!-- Admin Emergency Banner (shown only when no healthy DR candidate or escalated) -->
+  <div id="adminAlertBanner" class="hidden bg-rose-600 text-white px-4 py-3 shadow-md">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <i data-lucide="alert-octagon" class="w-6 h-6 animate-bounce"></i>
+        <div>
+          <span class="font-bold text-sm tracking-wide">ADMINISTRATOR ESCALATION ALERT:</span>
+          <span id="adminAlertText" class="text-xs text-rose-100 ml-1">No candidate DR region passed the minimum readiness threshold!</span>
+        </div>
+      </div>
+      <button onclick="window.resetAllChaos()" class="px-3.5 py-1 text-xs font-bold bg-white text-rose-700 rounded-full hover:bg-rose-50 transition-colors shadow">
+        Reset System Chaos
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== Main Multi-Page Container ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
+    <div id="pageContent">
+      <!-- Dynamic page injection by app.js -->
+    </div>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-stone-200/70 bg-white/60 py-6 px-4 lg:px-8 text-center text-xs text-stone-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-stone-700">CloudDR Studio v2.4</span>
+        <span>•</span>
+        <span>Autonomous Local Cloud Disaster Recovery Prototype</span>
+      </div>
+      <div class="flex items-center gap-4 text-stone-400">
+        <span>Zero Cloud Cost (Docker Compose)</span>
+        <span>•</span>
+        <span>Scikit-Learn ML Anomaly Engine</span>
+        <span>•</span>
+        <span>Weighted Region Scoring</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

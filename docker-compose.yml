@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  router:
+    container_name: router
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./router/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./router/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./router/dynamic:/etc/nginx/dynamic
+    networks:
+      - front-net
+      - region-primary-net
+      - region-dr-net
+    depends_on:
+      - region-primary
+      - region-dr-1
+      - region-dr-2
+
+  region-primary:
+    container_name: region-primary
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REGION_NAME=region-primary
+      - REGION_ROLE=primary
+      - BASE_LATENCY_MS=12.0
+      - CAPACITY_MAX_QPS=500.0
+      - COST_PER_HOUR=0.85
+    networks:
+      - front-net
+      - region-primary-net
+
+  region-dr-1:
+    container_name: region-dr-1
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REGION_NAME=region-dr-1
+      - REGION_ROLE=standby
+      - BASE_LATENCY_MS=22.0
+      - CAPACITY_MAX_QPS=450.0
+      - COST_PER_HOUR=0.70
+    networks:
+      - front-net
+      - region-dr-net
+
+  region-dr-2:
+    container_name: region-dr-2
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REGION_NAME=region-dr-2
+      - REGION_ROLE=standby
+      - BASE_LATENCY_MS=70.0
+      - CAPACITY_MAX_QPS=300.0
+      - COST_PER_HOUR=0.25
+    networks:
+      - front-net
+      - region-dr-net
+
+  controller:
+    container_name: controller
+    build:
+      context: ./controller
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./router/dynamic:/etc/nginx/dynamic
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./controller/data:/app/data
+      - ./controller/snapshots:/app/snapshots
+    environment:
+      - PRIMARY_URL=http://region-primary:8000
+      - DR1_URL=http://region-dr-1:8000
+      - DR2_URL=http://region-dr-2:8000
+      - ROUTER_URL=http://router:80
+      - NGINX_UPSTREAM_PATH=/etc/nginx/dynamic/upstream.conf
+    networks:
+      - front-net
+      - region-primary-net
+      - region-dr-net
+    depends_on:
+      - region-primary
+      - region-dr-1
+      - region-dr-2
+      - router
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - front-net
+    depends_on:
+      - controller
+
+networks:
+  front-net:
+    driver: bridge
+  region-primary-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+  region-dr-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
